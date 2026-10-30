@@ -6,6 +6,8 @@
 
 <p align="center"><a href="https://github.com/chinmays-tanx09/pinterest-adfree/releases/latest"><b>Download the latest APK</b></a></p>
 
+<p align="center"><img src="images/screenshot1.jpg" width="240" alt="Home feed"> <img src="images/screenshot2.jpg" width="240" alt="Home feed"> <img src="images/screenshot3.jpg" width="240" alt="Profile"></p>
+
 ## What it is
 
 This is Pinterest's own Android app, version 14.41.0, patched with the open-source [HushPinterest](https://github.com/SysAdminDoc/HushPinterest) patches (v0.0.13, GPL-3.0) using the [Morphe](https://morphe.software) patcher. No code of this repository's owner is added; all credit for the patches goes to their authors.
