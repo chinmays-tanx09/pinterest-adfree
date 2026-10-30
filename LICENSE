@@ -1,0 +1,19 @@
+Pinterest Ad-Free: notices
+
+This repository distributes a patched build of the Pinterest Android app.
+
+- The Pinterest app, its name and logo belong to Pinterest, Inc. This project
+  is unofficial and is not affiliated with, endorsed by or supported by
+  Pinterest, Inc.
+- The patches applied are HushPinterest v0.0.13 by SysAdminDoc, licensed under
+  the GNU General Public License v3.0. Their complete source code is available
+  at https://github.com/SysAdminDoc/HushPinterest (tag v0.0.13), together with
+  the GPL-3.0 text and the NOTICE file carrying the notices of the projects
+  they derive from (Morphe, a hard fork of ReVanced, among others).
+- The patches were applied with Morphe (https://github.com/MorpheApp).
+
+No other code is added. The README, images and release workflow in this
+repository may be reused freely.
+
+THE BUILD IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. USE IT AT YOUR
+OWN RISK.
