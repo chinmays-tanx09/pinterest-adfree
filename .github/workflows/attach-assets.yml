@@ -1,0 +1,45 @@
+name: Attach release asset
+# Attaches a prebuilt APK to a release. The APK is fetched from a temporary
+# URL (one or more parts, joined in order) and checked against its SHA-256.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag
+        required: true
+      apk_url:
+        description: Temporary URL(s) of the APK parts, space-separated, in order
+        required: true
+      apk_name:
+        description: Asset file name
+        required: true
+      apk_sha256:
+        description: SHA-256 of the APK
+        required: true
+permissions:
+  contents: write
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch and verify the APK
+        env:
+          APK_URL: ${{ inputs.apk_url }}
+          APK_NAME: ${{ inputs.apk_name }}
+          APK_SHA: ${{ inputs.apk_sha256 }}
+        run: |
+          : > "$APK_NAME"
+          for u in $APK_URL; do
+            d="$u"
+            case "$u" in https://tmpfiles.org/dl/*) ;; https://tmpfiles.org/*) d=$(curl -fsSL "$u" | grep -oE 'https://tmpfiles.org/dl/[^"]+' | head -1) ;; esac
+            curl -fL --retry 5 --retry-delay 5 -o part.bin "$d"
+            cat part.bin >> "$APK_NAME"; rm part.bin
+          done
+          echo "$APK_SHA  $APK_NAME" | sha256sum -c -
+          sha256sum "$APK_NAME" | tee SHA256SUMS.txt
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh release upload "$TAG" "${{ inputs.apk_name }}" SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
