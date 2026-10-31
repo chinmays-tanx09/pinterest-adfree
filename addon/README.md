@@ -28,3 +28,8 @@ Pinterest 14.41.0 APK as an extra dex file.
 | HushPinterest `PinMedia.resolve(Object)` | renamed `resolveHush`; the new `resolve` passes its answer through `PxMedia.fixResolution` so HLS / idea-pin videos get a Download row |
 | HushPinterest `Settings` | `download_pins`, `long_press_download`, `download_board`, `copy_image`, `share_image` default to on |
 | `AndroidManifest.xml` | versionCode 14418020 → 14418021 |
+
+## WhatsApp channel card (v14.41.0-channel)
+
+- `src/banner/ChannelBanner.java` (package `paradox.banner`): the launch card inviting users to the Paradox WhatsApp channel (Join channel / Later / Don't show again; once per app start; remembered in its own SharedPreferences). Added to the APK as its own extra dex.
+- Hook (smali): `com.pinterest.activityLibrary.activity.task.activity.MainActivity.onCreate`, right after `super.onCreate(...)`: `ChannelBanner.show(this)`.
