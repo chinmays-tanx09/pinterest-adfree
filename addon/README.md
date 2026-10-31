@@ -33,3 +33,9 @@ Pinterest 14.41.0 APK as an extra dex file.
 
 - `src/banner/ChannelBanner.java` (package `paradox.banner`): the launch card inviting users to the Paradox WhatsApp channel (Join channel / Later / Don't show again; once per app start; remembered in its own SharedPreferences). Added to the APK as its own extra dex.
 - Hook (smali): `com.pinterest.activityLibrary.activity.task.activity.MainActivity.onCreate`, right after `super.onCreate(...)`: `ChannelBanner.show(this)`.
+
+## Update check (v14.41.0-update)
+
+- `src/banner/UpdateCheck.java` (package `paradox.banner`): on launch, at most every 12 hours, reads `https://api.github.com/repos/chinmays-tanx09/pinterest-adfree/releases`, picks the newest stable release with an `.apk` asset and a `versionCode: N` line, and if N is higher than the installed versionCode shows an "Update available" card (Download opens the APK link in the browser / Later / Skip this version). Silent on any error, no telemetry, no new permissions. Started from `ChannelBanner.show`, so the existing hook covers it; the two cards queue one after the other.
+- `src/banner/ChannelBanner.java`: updated to start the update check and to queue its card with the update card. Same extra dex as before.
+- `AndroidManifest.xml`: versionCode 14418022 → 14418023.

@@ -37,6 +37,10 @@ public final class ChannelBanner {
     private static final String KEY_HIDE = "hide";
     private static boolean shownThisProcess;
     private static Boolean forcedDark;
+    /** One Paradox card at a time: the channel card and the update card queue behind each other. */
+    static boolean busy;
+    private static boolean channelPending;
+    private static Runnable waiting;
 
     private ChannelBanner() {}
 
@@ -62,37 +66,68 @@ public final class ChannelBanner {
     }
 
     public static void show(final Activity a) {
+        // Update check (GitHub releases, at most every 12 h, background thread, silent on any error).
+        try { UpdateCheck.start(a); } catch (Throwable ignored) {}
         try {
             if (a == null || shownThisProcess) return;
             if (prefs(a).getBoolean(KEY_HIDE, false)) { shownThisProcess = true; return; }
+            if (channelPending) return;
+            channelPending = true;
             final View decor = a.getWindow().getDecorView();
             decor.postDelayed(new Runnable() {
                 @Override public void run() { safeShow(a); }
             }, 900);
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) { channelPending = false; }
+    }
+
+    /** Runs r now if no Paradox card is on screen or about to be, else right after it closes. */
+    static void whenFree(Runnable r) {
+        if (busy || channelPending) { waiting = r; return; }
+        try { r.run(); } catch (Throwable ignored) {}
+    }
+
+    /** Called when a Paradox card closes (or the pending channel card decides not to show). */
+    static void freed(final Activity a) {
+        busy = false;
+        final Runnable r = waiting;
+        waiting = null;
+        if (r == null) return;
+        try {
+            a.getWindow().getDecorView().postDelayed(r, 450);
+        } catch (Throwable t) {
+            try { r.run(); } catch (Throwable ignored) {}
+        }
     }
 
     private static SharedPreferences prefs(Context c) {
         return c.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    private static boolean dead(Activity a) {
+    static boolean dead(Activity a) {
         if (a.isFinishing()) return true;
         return Build.VERSION.SDK_INT >= 17 && a.isDestroyed();
     }
 
     private static void safeShow(final Activity a) {
+        if (busy) {
+            // The update card is on screen: show the channel card after it.
+            channelPending = false;
+            waiting = new Runnable() { @Override public void run() { channelPending = true; safeShow(a); } };
+            return;
+        }
+        boolean showed = false;
         try {
-            if (shownThisProcess || dead(a)) return;
-            build(a);
+            if (!shownThisProcess && !dead(a)) showed = build(a);
         } catch (Throwable ignored) {}
+        channelPending = false;
+        if (!showed) freed(a);
     }
 
-    private static int dp(Context c, float v) {
+    static int dp(Context c, float v) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, c.getResources().getDisplayMetrics());
     }
 
-    private static GradientDrawable pill(int fill, int stroke, int strokeW, float radius) {
+    static GradientDrawable pill(int fill, int stroke, int strokeW, float radius) {
         GradientDrawable g = new GradientDrawable();
         g.setShape(GradientDrawable.RECTANGLE);
         g.setCornerRadius(radius);
@@ -101,13 +136,13 @@ public final class ChannelBanner {
         return g;
     }
 
-    private static Drawable ripple(Drawable content, int rippleColor, float radius) {
+    static Drawable ripple(Drawable content, int rippleColor, float radius) {
         if (Build.VERSION.SDK_INT < 21) return content;
         GradientDrawable mask = pill(Color.WHITE, 0, 0, radius);
         return new RippleDrawable(ColorStateList.valueOf(rippleColor), content, mask);
     }
 
-    private static TextView button(Context c, String text, int textColor, Drawable bg, float sizeSp, boolean medium) {
+    static TextView button(Context c, String text, int textColor, Drawable bg, float sizeSp, boolean medium) {
         TextView b = new TextView(c);
         b.setText(text);
         b.setTextColor(textColor);
@@ -122,7 +157,7 @@ public final class ChannelBanner {
         return b;
     }
 
-    private static void build(final Activity a) {
+    private static boolean build(final Activity a) {
         final boolean night = isDark(a);
         final int card = night ? 0xFF111113 : 0xFFFFFFFF;
         final int border = night ? 0xFF2A2A2F : 0xFFE4E4E8;
@@ -229,13 +264,18 @@ public final class ChannelBanner {
             w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             w.setDimAmount(night ? 0.72f : 0.55f);
         }
-        if (dead(a)) return;
+        d.setOnDismissListener(new android.content.DialogInterface.OnDismissListener() {
+            @Override public void onDismiss(android.content.DialogInterface di) { freed(a); }
+        });
+        if (dead(a)) return false;
         d.show();
+        busy = true;
         shownThisProcess = true;
+        return true;
     }
 
     /** Follows the host app's own theme: its window background colour, else the night-mode flag. */
-    private static boolean isDark(Activity a) {
+    static boolean isDark(Activity a) {
         if (forcedDark != null) return forcedDark.booleanValue();
         boolean sys = (a.getResources().getConfiguration().uiMode
                 & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
@@ -253,7 +293,7 @@ public final class ChannelBanner {
         return sys;
     }
 
-    private static void dismiss(Dialog d) {
+    static void dismiss(Dialog d) {
         try { d.dismiss(); } catch (Throwable ignored) {}
     }
 
